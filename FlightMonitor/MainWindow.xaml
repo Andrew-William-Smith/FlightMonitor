@@ -9,7 +9,9 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="50" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="*" MinHeight="80" />
+            <RowDefinition Height="5" />
+            <RowDefinition Height="*" MinHeight="80" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -18,7 +20,34 @@
         <ToggleButton Grid.Row="0" Grid.Column="0"
                       Content="{Binding ConnectButtonText, UpdateSourceTrigger=PropertyChanged}"
                       IsChecked="{Binding ConnectButtonChecked}" />
-        <Border Grid.Row="2" Grid.Column="0" Padding="5">
+        <GroupBox Grid.Row="1" Grid.Column="0" Header="Simulator Variables" Margin="5" Padding="5" />
+        <GridSplitter Grid.Row="2" Grid.Column="0" Height="5" HorizontalAlignment="Stretch" />
+
+        <GroupBox Grid.Row="3" Grid.Column="0" Header="Messages" Margin="5" Padding="5">
+            <DataGrid x:Name="messageGrid" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding StatusText}" Header="Status" />
+                    <DataGridTextColumn Binding="{Binding Text}" Header="Message" />
+                </DataGrid.Columns>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusText}" Value="INFO">
+                                <Setter Property="Background" Value="LightBlue" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding StatusText}" Value="WARN">
+                                <Setter Property="Background" Value="LemonChiffon" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding StatusText}" Value="ERR">
+                                <Setter Property="Background" Value="LightCoral" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </GroupBox>
+
+        <Border Grid.Row="4" Grid.Column="0" Padding="5">
             <StackPanel Orientation="Horizontal">
                 <CheckBox Content="Keep on top" IsChecked="{Binding Topmost}" />
             </StackPanel>

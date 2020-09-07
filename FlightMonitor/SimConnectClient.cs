@@ -1,5 +1,6 @@
 ﻿using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -25,16 +26,48 @@ namespace FlightMonitor {
         /// <summary>The window handle on whose event loop SimConnect is running.</summary>
         public IntPtr WindowHandle { get; set; } = IntPtr.Zero;
 
+        /// <summary>The messages emitted during SimConnect interaction.</summary>
+        public ObservableCollection<SimConnectMessage> Messages { get; }
+
         /// <summary>SimConnect handle for interacting with an instance of the simulator.</summary>
         private SimConnect connection;
 
         /// <summary>Whether this client is currently connected to the simulator.</summary>
         public bool Connected => connection != null;
 
+        public SimConnectClient() {
+            Messages = new ObservableCollection<SimConnectMessage>();
+        }
+
+        /// <summary>
+        /// Add the specified message to the message log, to be displayed to the user.
+        /// </summary>
+        /// <param name="status">The status (urgency) of the message.</param>
+        /// <param name="text">The descriptive text of the message.</param>
+        private void LogMessage(SimConnectMessage.MessageStatus status, string text) {
+            Messages.Add(new SimConnectMessage() {
+                Status = status,
+                Text = text
+            });
+        }
+
         private void SimConnect_RecvOpenHandler(SimConnect sender, SIMCONNECT_RECV_OPEN data) {
             // Show a message in the simulator to show that the connection succeeded
             sender.Text(SIMCONNECT_TEXT_TYPE.PRINT_WHITE, TEXT_DURATION, DummyEnum.Dummy,
                 "Flight Monitor is connected to this simulator instance.");
+            LogMessage(SimConnectMessage.MessageStatus.Information,
+                "Received SimConnect open message: displaying notification.");
+        }
+
+        private void SimConnect_RecvQuitHandler(SimConnect sender, SIMCONNECT_RECV data) {
+            // Simulator has closed: disconnect SimConnect and show a notification
+            LogMessage(SimConnectMessage.MessageStatus.Warning, "Received SimConnect quit message: disconnecting.");
+            Disconnect();
+        }
+
+        private void SimConnect_RecvExceptionHandler(SimConnect sender, SIMCONNECT_RECV_EXCEPTION data) {
+            SIMCONNECT_EXCEPTION ex = (SIMCONNECT_EXCEPTION)data.dwException;
+            LogMessage(SimConnectMessage.MessageStatus.Warning, $"Received SimConnect exception: {ex}");
         }
 
         /// <summary>
@@ -44,8 +77,13 @@ namespace FlightMonitor {
         public bool Connect() {
             if (connection != null) {
                 // If we already have a connection, there is no need to re-establish one
+                LogMessage(SimConnectMessage.MessageStatus.Warning,
+                    "Attempted to establish simultaneous SimConnect connections.  Retaining existing connection.");
                 return true;
             }
+
+            // If we are establishing a new connection, clear messages from the previous one
+            Messages.Clear();
 
             try {
                 // Establish a connection to the simulator on the current window's event loop
@@ -54,8 +92,14 @@ namespace FlightMonitor {
 
                 // Add connection event handlers
                 connection.OnRecvOpen += new SimConnect.RecvOpenEventHandler(SimConnect_RecvOpenHandler);
+                connection.OnRecvQuit += new SimConnect.RecvQuitEventHandler(SimConnect_RecvQuitHandler);
+                connection.OnRecvException += new SimConnect.RecvExceptionEventHandler(SimConnect_RecvExceptionHandler);
+
+                // Inform the user that the connection was successful
+                LogMessage(SimConnectMessage.MessageStatus.Information, "Connected to Flight Simulator.");
                 return true;
             } catch (COMException ex) {
+                LogMessage(SimConnectMessage.MessageStatus.Error, $"Error occurred while connecting: {ex.Message}");
                 _ = MessageBox.Show($"An error occurred while connecting to Flight Simulator:\r\n{ex.Message}",
                     "Connection Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
@@ -66,6 +110,7 @@ namespace FlightMonitor {
         /// Disconnect this instance from the active simulator's SimConnect handle.
         /// </summary>
         public void Disconnect() {
+            LogMessage(SimConnectMessage.MessageStatus.Information, "Disconnecting from Flight Simulator.");
             connection.Text(SIMCONNECT_TEXT_TYPE.PRINT_WHITE, TEXT_DURATION, DummyEnum.Dummy,
                 "Flight Monitor disconnected!");
             connection.Dispose();
@@ -77,6 +122,39 @@ namespace FlightMonitor {
         /// </summary>
         public void ReceiveMessage() {
             connection?.ReceiveMessage();
+        }
+
+        /// <summary>
+        /// A message sent from the SimConnect client, for display in the Flight Monitor window.
+        /// </summary>
+        public class SimConnectMessage {
+            public enum MessageStatus {
+                Information,
+                Warning,
+                Error
+            }
+
+            /// <summary>The status (urgency) with which the message was issued.</summary>
+            public MessageStatus Status { get; set; }
+
+            /// <summary>The user-facing status of the message.</summary>
+            public string StatusText {
+                get {
+                    switch (Status) {
+                        case MessageStatus.Information:
+                            return "INFO";
+                        case MessageStatus.Warning:
+                            return "WARN";
+                        case MessageStatus.Error:
+                            return "ERR";
+                        default:
+                            return "????";
+                    }
+                }
+            }
+
+            /// <summary>The user-facing text of the message.</summary>
+            public string Text { get; set; }
         }
     }
 }

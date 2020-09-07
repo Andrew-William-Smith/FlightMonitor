@@ -32,6 +32,7 @@ namespace FlightMonitor {
             simClient = new SimConnectClient();
 
             // Connect WPF bindings once data sources are initialised
+            messageGrid.ItemsSource = simClient.Messages;
             Topmost = true;
             DataContext = this;
         }
