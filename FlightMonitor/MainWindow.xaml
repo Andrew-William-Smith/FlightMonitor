@@ -17,10 +17,21 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
+
         <ToggleButton Grid.Row="0" Grid.Column="0"
                       Content="{Binding ConnectButtonText, UpdateSourceTrigger=PropertyChanged}"
                       IsChecked="{Binding ConnectButtonChecked}" />
-        <GroupBox Grid.Row="1" Grid.Column="0" Header="Simulator Variables" Margin="5" Padding="5" />
+
+        <GroupBox Grid.Row="1" Grid.Column="0" Header="Simulator Variables" Margin="5" Padding="5">
+            <DataGrid x:Name="variablesGrid" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Name}" Header="Name" />
+                    <DataGridTextColumn Binding="{Binding UntypedValue}" Header="Value" />
+                    <DataGridTextColumn Binding="{Binding Unit}" Header="Unit" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </GroupBox>
+
         <GridSplitter Grid.Row="2" Grid.Column="0" Height="5" HorizontalAlignment="Stretch" />
 
         <GroupBox Grid.Row="3" Grid.Column="0" Header="Messages" Margin="5" Padding="5">

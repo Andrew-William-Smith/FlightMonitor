@@ -81,6 +81,8 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="SimConnectClient.cs" />
+    <Compile Include="SimVariable.cs" />
+    <Compile Include="SimVariables.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
