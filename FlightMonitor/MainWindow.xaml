@@ -18,5 +18,10 @@
         <ToggleButton Grid.Row="0" Grid.Column="0"
                       Content="{Binding ConnectButtonText, UpdateSourceTrigger=PropertyChanged}"
                       IsChecked="{Binding ConnectButtonChecked}" />
+        <Border Grid.Row="2" Grid.Column="0" Padding="5">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Keep on top" IsChecked="{Binding Topmost}" />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

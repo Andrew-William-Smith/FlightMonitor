@@ -32,9 +32,11 @@ namespace FlightMonitor {
             simClient = new SimConnectClient();
 
             // Connect WPF bindings once data sources are initialised
+            Topmost = true;
             DataContext = this;
         }
 
+        #region Win32 message loop handling
         /// <summary>Get the <c>HwndSource</c> for this window.</summary>
         private HwndSource GetHwndSource() => PresentationSource.FromVisual(this) as HwndSource;
 
@@ -57,6 +59,7 @@ namespace FlightMonitor {
             }
             return IntPtr.Zero;
         }
+        #endregion
 
         #region INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler PropertyChanged;
