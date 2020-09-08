@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using System.IO;
+using System.Net;
+using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,12 +35,35 @@ namespace FlightMonitor {
         /// </summary>
         /// <param name="cancelToken">The cancellation token used to stop the thread.</param>
         private void HandleConnections(CancellationToken cancelToken) {
-            bool keepRunning = true;
-            while (keepRunning) {
-                if (cancelToken.IsCancellationRequested) {
-                    // If the thread has been cancelled, stop running
-                    keepRunning = false;
+            // Run until the cancellation token signals to stop
+            while (!cancelToken.IsCancellationRequested) {
+                // Get the request and response from the connection context
+                HttpListenerContext context;
+                try {
+                    context = listener.GetContext();
+                } catch (HttpListenerException) {
+                    return;
                 }
+                HttpListenerRequest request = context.Request;
+                HttpListenerResponse response = context.Response;
+
+                // Attempt to get the contents of the specified file
+                string requestedFile = request.RawUrl == "/" ? "/index.html" : request.RawUrl;
+                byte[] fileContents;
+                try {
+                    fileContents = File.ReadAllBytes($"./Client{requestedFile}");
+                    response.ContentType = "text/html";
+                } catch {
+                    fileContents = Encoding.UTF8.GetBytes($"Error 404: File {requestedFile} could not be found.");
+                    response.ContentType = "text/plain";
+                    response.StatusCode = 404;
+                }
+
+                // Send response back to the client
+                response.ContentEncoding = Encoding.UTF8;
+                response.ContentLength64 = fileContents.LongLength;
+                response.OutputStream.Write(fileContents, 0, fileContents.Length);
+                response.Close();
             }
         }
 
