@@ -1,0 +1,54 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+/***********************************************************************************************************************
+ * This file was automatically generated from SimValue.tt.  Do not edit!                                               *
+ **********************************************************************************************************************/
+
+using Microsoft.FlightSimulator.SimConnect;
+using System.Runtime.InteropServices;
+
+namespace FlightMonitor {
+    /// <summary>
+    /// A wrapped value usable for interoperation with SimConnect.
+    /// </summary>
+    interface ISimValue {
+        /// <summary>The current value of the type.</summary>
+        object Value { get; set; }
+
+        /// <summary>Whether this type represents a string.</summary>
+        bool IsString { get; }
+
+        /// <summary>The SimConnect type of this type.</summary>
+        SIMCONNECT_DATATYPE SimConnectType { get; }
+    }
+
+    <#= GenerateType("SimDouble", "double", "false", "FLOAT64") #>
+    <#= GenerateType("SimBool", "int", "false", "INT32", "_value != 0") #>
+    <#= GenerateType("SimString8", "string", "true", "STRING8", annotation: "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]") #>
+    <#= GenerateType("SimString64", "string", "true", "STRING64", annotation: "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]") #>
+}
+
+<#+
+public string GenerateType(string name, string type, string isString, string simConnectType, string getExpr = "_value", string annotation = "") {
+    return $@"
+    /// <summary>
+    /// A wrapper for the SimConnect type <c>{simConnectType}</c>.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
+    public struct {name} : ISimValue {{
+        {annotation}
+        private {type} _value;
+        public bool IsString => {isString};
+        public SIMCONNECT_DATATYPE SimConnectType => SIMCONNECT_DATATYPE.{simConnectType};
+
+        public object Value {{
+            get => {getExpr};
+            set => _value = (({name})value)._value;
+        }}
+    }}";
+}
+#>

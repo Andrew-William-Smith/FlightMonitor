@@ -53,7 +53,7 @@ namespace FlightMonitor {
         public bool Connected => connection != null;
 
         /// <summary>Timer used to limit the rate of SimConnect reads.</summary>
-        private DispatcherTimer timer;
+        private readonly DispatcherTimer timer;
 
         public SimConnectClient() {
             Messages = new ObservableCollection<SimConnectMessage>();

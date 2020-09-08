@@ -55,7 +55,7 @@ namespace FlightMonitor {
         }
 
         /// <summary>Internal representation of the variable value.</summary>
-        private T simValue;
+        private readonly T simValue;
 
         #region ISimVariable implementation
         // Accessors
