@@ -60,9 +60,13 @@
         </GroupBox>
 
         <Border Grid.Row="4" Grid.Column="0" Padding="5">
-            <StackPanel Orientation="Horizontal">
+            <Grid>
                 <CheckBox Content="Keep on top" IsChecked="{Binding Topmost}" />
-            </StackPanel>
+                <TextBlock HorizontalAlignment="Right">
+                    <Run Text="IP Address:" />
+                    <Run Text="{Binding CurrentIpAddress}" />
+                </TextBlock>
+            </Grid>
         </Border>
     </Grid>
 </Window>

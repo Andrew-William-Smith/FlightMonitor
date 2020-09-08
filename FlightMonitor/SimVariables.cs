@@ -1,4 +1,4 @@
-﻿using Microsoft.FlightSimulator.SimConnect;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -35,13 +35,12 @@ namespace FlightMonitor {
                         ISimVariable newVar;
                         switch (varUnit) {
                             case "String8":
-                                newVar = new SimVariable<SimString8>(varId, varName, varUnit);
-                                break;
                             case "String64":
-                                newVar = new SimVariable<SimString64>(varId, varName, varUnit);
-                                break;
                             case "Bool":
-                                newVar = new SimVariable<SimBool>(varId, varName, varUnit);
+                                // Special types require generics generated from their units
+                                Type genericType = Type.GetType("FlightMonitor.Sim" + varUnit);
+                                Type newType = typeof(SimVariable<>).MakeGenericType(genericType);
+                                newVar = (ISimVariable) Activator.CreateInstance(newType, varId, varName, varUnit);
                                 break;
                             default:
                                 // Treat all other units as float

@@ -1,5 +1,9 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -11,6 +15,7 @@ namespace FlightMonitor {
 
         // Window bindings
         public string WindowTitleStatus => "Flight Monitor — " + (simClient.Connected ? "Connected" : "Disconnected");
+        public string CurrentIpAddress { get; set; }
 
         // Connect button bindings
         public string ConnectButtonText => (simClient.Connected ? "Disconnect from" : "Connect to") + " Flight Simulator";
@@ -31,11 +36,26 @@ namespace FlightMonitor {
             InitializeComponent();
             simClient = new SimConnectClient();
 
+            // Watch IP address
+            SetIpAddress();
+            NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((sender, e) => SetIpAddress());
+
             // Connect WPF bindings once data sources are initialised
             variablesGrid.ItemsSource = simClient.Variables;
             messageGrid.ItemsSource = simClient.Messages;
             Topmost = true;
             DataContext = this;
+        }
+
+        /// <summary>
+        /// Get the system's current IP address and set the <c>CurrentIpAddress</c> property.
+        /// </summary>
+        private void SetIpAddress() {
+            CurrentIpAddress =
+                Dns.GetHostEntry(Dns.GetHostName())
+                   .AddressList
+                   .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)
+                   .ToString();
         }
 
         #region Win32 message loop handling
