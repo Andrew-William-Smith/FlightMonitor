@@ -30,7 +30,6 @@ namespace FlightMonitor {
         public MainWindow() {
             InitializeComponent();
             simClient = new SimConnectClient();
-            simClient.AddVariable("INDICATED ALTITUDE");
 
             // Connect WPF bindings once data sources are initialised
             variablesGrid.ItemsSource = simClient.Variables;

@@ -81,6 +81,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="SimConnectClient.cs" />
+    <Compile Include="SimValue.cs" />
     <Compile Include="SimVariable.cs" />
     <Compile Include="SimVariables.cs" />
     <Page Include="MainWindow.xaml">
@@ -121,6 +122,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="SimVariables.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

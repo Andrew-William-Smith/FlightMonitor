@@ -26,8 +26,9 @@
             <DataGrid x:Name="variablesGrid" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding Name}" Header="Name" />
-                    <DataGridTextColumn Binding="{Binding UntypedValue}" Header="Value" />
+                    <DataGridTextColumn Binding="{Binding Value}" Header="Value" />
                     <DataGridTextColumn Binding="{Binding Unit}" Header="Unit" />
+                    <DataGridTextColumn Binding="{Binding SimConnectType}" Header="Type" />
                 </DataGrid.Columns>
             </DataGrid>
         </GroupBox>

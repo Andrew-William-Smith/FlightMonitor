@@ -3,6 +3,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace FlightMonitor {
     /// <summary>
@@ -23,6 +24,19 @@ namespace FlightMonitor {
         /// <summary>The duration in seconds for which text messages should be shown in the simulator.</summary>
         private const float TEXT_DURATION = 3.0f;
 
+        /// <summary>Variables that are monitored by default for every monitoring task.</summary>
+        private static readonly string[] DEFAULT_VARIABLES = {
+            "ATC AIRLINE",
+            "ATC FLIGHT NUMBER",
+            "ATC HEAVY",
+            "ATC ID",
+            "ATC MODEL",
+            "ATC TYPE",
+            "GENERAL ENG THROTTLE LEVER POSITION:1",
+            "GENERAL ENG THROTTLE LEVER POSITION:2",
+            "INDICATED ALTITUDE"
+        };
+
         /// <summary>The window handle on whose event loop SimConnect is running.</summary>
         public IntPtr WindowHandle { get; set; } = IntPtr.Zero;
 
@@ -38,9 +52,30 @@ namespace FlightMonitor {
         /// <summary>Whether this client is currently connected to the simulator.</summary>
         public bool Connected => connection != null;
 
+        /// <summary>Timer used to limit the rate of SimConnect reads.</summary>
+        private DispatcherTimer timer;
+
         public SimConnectClient() {
             Messages = new ObservableCollection<SimConnectMessage>();
             Variables = new ObservableCollection<ISimVariable>();
+
+            // Start monitoring all default variables
+            foreach (string v in DEFAULT_VARIABLES) {
+                AddVariable(v);
+            }
+
+            // Initialise the timer with a 100 ms tick rate
+            timer = new DispatcherTimer {
+                Interval = new TimeSpan(0, 0, 0, 0, 100)
+            };
+            timer.Tick += new EventHandler(TimerTick);
+        }
+
+        private void TimerTick(object sender, EventArgs e) {
+            // Fetch data for all variables
+            foreach (ISimVariable v in Variables) {
+                connection?.RequestDataOnSimObjectType(v.Id, v.Id, 0, SIMCONNECT_SIMOBJECT_TYPE.USER);
+            }
         }
 
         /// <summary>
@@ -61,6 +96,14 @@ namespace FlightMonitor {
                 "Flight Monitor is connected to this simulator instance.");
             LogMessage(SimConnectMessage.MessageStatus.Information,
                 "Received SimConnect open message: displaying notification.");
+
+            // Register all variables with SimConnect
+            foreach (ISimVariable v in Variables) {
+                v.Register(sender);
+            }
+
+            // Now that variables are registered, we can start the timer
+            timer.Start();
         }
 
         private void SimConnect_RecvQuitHandler(SimConnect sender, SIMCONNECT_RECV data) {
@@ -72,6 +115,13 @@ namespace FlightMonitor {
         private void SimConnect_RecvExceptionHandler(SimConnect sender, SIMCONNECT_RECV_EXCEPTION data) {
             SIMCONNECT_EXCEPTION ex = (SIMCONNECT_EXCEPTION)data.dwException;
             LogMessage(SimConnectMessage.MessageStatus.Warning, $"Received SimConnect exception: {ex}");
+        }
+
+        private void SimConnect_RecvSimobjectDataBytypeHandler(SimConnect sender,
+                                                               SIMCONNECT_RECV_SIMOBJECT_DATA_BYTYPE data) {
+            // Set the value of the variable indicated in the request
+            int requestId = (int)data.dwRequestID;
+            SimVariables.byId[requestId].Value = data.dwData[0];
         }
 
         /// <summary>
@@ -98,6 +148,8 @@ namespace FlightMonitor {
                 connection.OnRecvOpen += new SimConnect.RecvOpenEventHandler(SimConnect_RecvOpenHandler);
                 connection.OnRecvQuit += new SimConnect.RecvQuitEventHandler(SimConnect_RecvQuitHandler);
                 connection.OnRecvException += new SimConnect.RecvExceptionEventHandler(SimConnect_RecvExceptionHandler);
+                connection.OnRecvSimobjectDataBytype +=
+                    new SimConnect.RecvSimobjectDataBytypeEventHandler(SimConnect_RecvSimobjectDataBytypeHandler);
 
                 // Inform the user that the connection was successful
                 LogMessage(SimConnectMessage.MessageStatus.Information, "Connected to Flight Simulator.");
@@ -115,6 +167,7 @@ namespace FlightMonitor {
         /// </summary>
         public void Disconnect() {
             LogMessage(SimConnectMessage.MessageStatus.Information, "Disconnecting from Flight Simulator.");
+            timer.Stop();
             connection.Text(SIMCONNECT_TEXT_TYPE.PRINT_WHITE, TEXT_DURATION, DummyEnum.Dummy,
                 "Flight Monitor disconnected!");
             connection.Dispose();
@@ -134,8 +187,8 @@ namespace FlightMonitor {
         /// <param name="name">The name of the variable to monitor.</param>
         /// <returns><c>true</c> if the variable was resolved successfully; <c>false</c> otherwise.</returns>
         public bool AddVariable(string name) {
-            if (SimVariables.vars.ContainsKey(name)) {
-                Variables.Add(SimVariables.vars[name]);
+            if (SimVariables.byName.ContainsKey(name)) {
+                Variables.Add(SimVariables.byName[name]);
                 LogMessage(SimConnectMessage.MessageStatus.Information, $"Started monitoring variable {name}.");
                 return true;
             } else {

@@ -1,18 +1,61 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.FlightSimulator.SimConnect;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 
 namespace FlightMonitor {
     /// <summary>
     /// Wrapper class for the base variable objects for all SimConnect variables supported by Flight Monitor.
     /// </summary>
     static class SimVariables {
-        /// <summary>Cache of pre-instantiated variables.</summary>
-        public static Dictionary<string, ISimVariable> vars;
+        /// <summary>Name of the file containing the list of SimConnect variables.</summary>
+        private const string VARIABLES_FILE_NAME = "FlightMonitor.SimVariables.txt";
+
+        /// <summary>Cache of pre-instantiated variables, indexable by name.</summary>
+        public static Dictionary<string, ISimVariable> byName;
+
+        /// <summary>Cache of pre-instantiated variables, indexable by ID.</summary>
+        public static List<ISimVariable> byId;
 
         static SimVariables() {
-            // TODO: Instantiate from file
-            vars = new Dictionary<string, ISimVariable> {
-                ["INDICATED ALTITUDE"] = new SimVariable<double>(0, "INDICATED ALTITUDE", "feet")
-            };
+            byName = new Dictionary<string, ISimVariable>();
+            byId = new List<ISimVariable>();
+
+            // Read in variables from file
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(VARIABLES_FILE_NAME)) {
+                using (StreamReader reader = new StreamReader(stream)) {
+                    int varId = 0;
+                    while (!reader.EndOfStream) {
+                        // Variable definitions are of the format "name,unit"
+                        string[] varComponents = reader.ReadLine().Split(',');
+                        string varName = varComponents[0];
+                        string varUnit = varComponents[1];
+
+                        // Initialise variable with the type indicated by the unit
+                        ISimVariable newVar;
+                        switch (varUnit) {
+                            case "String8":
+                                newVar = new SimVariable<SimString8>(varId, varName, varUnit);
+                                break;
+                            case "String64":
+                                newVar = new SimVariable<SimString64>(varId, varName, varUnit);
+                                break;
+                            case "Bool":
+                                newVar = new SimVariable<SimBool>(varId, varName, varUnit);
+                                break;
+                            default:
+                                // Treat all other units as float
+                                newVar = new SimVariable<SimDouble>(varId, varName, varUnit);
+                                break;
+                        }
+
+                        // Add variable to both indices
+                        byName.Add(varName, newVar);
+                        byId.Add(newVar);
+                        varId++;
+                    }
+                }
+            }
         }
     }
 }
