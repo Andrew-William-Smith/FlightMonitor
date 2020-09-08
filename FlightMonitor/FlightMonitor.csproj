@@ -62,6 +62,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -143,6 +144,6 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /D /Y "$(MSFS_SDK)SimConnect SDK\lib\SimConnect.dll" "$(TargetDir)"
-xcopy /E /I /Y "$(ProjectDir)\..\Client" "$(TargetDir)\Client"</PostBuildEvent>
+xcopy /E /I /Y "$(ProjectDir)\..\flight-monitor-client\build" "$(TargetDir)\Client"</PostBuildEvent>
   </PropertyGroup>
 </Project>
