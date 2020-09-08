@@ -61,8 +61,14 @@
 
         <Border Grid.Row="4" Grid.Column="0" Padding="5">
             <Grid>
-                <CheckBox Content="Keep on top" IsChecked="{Binding Topmost}" />
-                <TextBlock HorizontalAlignment="Right">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <CheckBox Grid.Column="0" Content="Keep on top" IsChecked="{Binding Topmost}" />
+                <TextBlock Grid.Column="2">
                     <Run Text="IP Address:" />
                     <Run Text="{Binding CurrentIpAddress}" />
                 </TextBlock>

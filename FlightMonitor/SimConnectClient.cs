@@ -61,7 +61,7 @@ namespace FlightMonitor {
 
             // Start monitoring all default variables
             foreach (string v in DEFAULT_VARIABLES) {
-                AddVariable(v);
+                _ = AddVariable(v);
             }
 
             // Initialise the timer with a 100 ms tick rate

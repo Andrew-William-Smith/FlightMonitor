@@ -13,6 +13,9 @@ namespace FlightMonitor {
         /// <summary>Client used to access simulator data.</summary>
         private readonly SimConnectClient simClient;
 
+        /// <summary>The HTTP server used to field file requests from the client.</summary>
+        private readonly HttpServer httpServer;
+
         // Window bindings
         public string WindowTitleStatus => "Flight Monitor — " + (simClient.Connected ? "Connected" : "Disconnected");
         public string CurrentIpAddress { get; set; }
@@ -23,9 +26,12 @@ namespace FlightMonitor {
             get => simClient.Connected;
             set {
                 if (simClient.Connected) {
+                    httpServer.Stop();
                     simClient.Disconnect();
                 } else {
-                    _ = simClient.Connect();
+                    if (simClient.Connect()) {
+                        httpServer.Start();
+                    }
                 }
                 NotifyPropertyChanged("ConnectButtonText");
                 NotifyPropertyChanged("WindowTitleStatus");
@@ -39,6 +45,9 @@ namespace FlightMonitor {
             // Watch IP address
             SetIpAddress();
             NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((sender, e) => SetIpAddress());
+
+            // Initialise HTTP server
+            httpServer = new HttpServer();
 
             // Connect WPF bindings once data sources are initialised
             variablesGrid.ItemsSource = simClient.Variables;

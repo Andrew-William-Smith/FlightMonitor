@@ -80,6 +80,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="HttpServer.cs" />
     <Compile Include="SimConnectClient.cs" />
     <Compile Include="SimValue.cs">
       <AutoGen>True</AutoGen>
