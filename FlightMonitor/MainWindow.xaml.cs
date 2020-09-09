@@ -16,6 +16,9 @@ namespace FlightMonitor {
         /// <summary>The HTTP server used to field file requests from the client.</summary>
         private readonly HttpServer httpServer;
 
+        /// <summary>Global lock used to synchronise observable collections.</summary>
+        private readonly object globalLock = new object();
+
         // Window bindings
         public string WindowTitleStatus => "Flight Monitor — " + (simClient.Connected ? "Connected" : "Disconnected");
         public string CurrentIpAddress { get; set; }
@@ -40,14 +43,14 @@ namespace FlightMonitor {
 
         public MainWindow() {
             InitializeComponent();
-            simClient = new SimConnectClient();
+            simClient = new SimConnectClient(globalLock);
 
             // Watch IP address
             SetIpAddress();
             NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((sender, e) => SetIpAddress());
 
             // Initialise HTTP server
-            httpServer = new HttpServer();
+            httpServer = new HttpServer(simClient);
 
             // Connect WPF bindings once data sources are initialised
             variablesGrid.ItemsSource = simClient.Variables;

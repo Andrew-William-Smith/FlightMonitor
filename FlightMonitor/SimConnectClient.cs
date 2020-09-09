@@ -3,6 +3,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Threading;
 
 namespace FlightMonitor {
@@ -24,19 +25,6 @@ namespace FlightMonitor {
         /// <summary>The duration in seconds for which text messages should be shown in the simulator.</summary>
         private const float TEXT_DURATION = 3.0f;
 
-        /// <summary>Variables that are monitored by default for every monitoring task.</summary>
-        private static readonly string[] DEFAULT_VARIABLES = {
-            "ATC AIRLINE",
-            "ATC FLIGHT NUMBER",
-            "ATC HEAVY",
-            "ATC ID",
-            "ATC MODEL",
-            "ATC TYPE",
-            "GENERAL ENG THROTTLE LEVER POSITION:1",
-            "GENERAL ENG THROTTLE LEVER POSITION:2",
-            "INDICATED ALTITUDE"
-        };
-
         /// <summary>The window handle on whose event loop SimConnect is running.</summary>
         public IntPtr WindowHandle { get; set; } = IntPtr.Zero;
 
@@ -44,7 +32,7 @@ namespace FlightMonitor {
         public ObservableCollection<SimConnectMessage> Messages { get; }
 
         /// <summary>The simulator variables currently being handled by this client.</summary>
-        public ObservableCollection<ISimVariable> Variables { get; }
+        public ObservableCollection<ISimVariable> Variables { get; private set; }
 
         /// <summary>SimConnect handle for interacting with an instance of the simulator.</summary>
         private SimConnect connection;
@@ -55,14 +43,17 @@ namespace FlightMonitor {
         /// <summary>Timer used to limit the rate of SimConnect reads.</summary>
         private readonly DispatcherTimer timer;
 
-        public SimConnectClient() {
+        /// <summary>The global lock used to synchronise access between this client and the main thread.</summary>
+        private readonly object globalLock;
+
+        public SimConnectClient(object globalLock) {
             Messages = new ObservableCollection<SimConnectMessage>();
             Variables = new ObservableCollection<ISimVariable>();
 
-            // Start monitoring all default variables
-            foreach (string v in DEFAULT_VARIABLES) {
-                _ = AddVariable(v);
-            }
+            // Synchronise both observable collections
+            this.globalLock = globalLock;
+            BindingOperations.EnableCollectionSynchronization(Messages, globalLock);
+            BindingOperations.EnableCollectionSynchronization(Variables, globalLock);
 
             // Initialise the timer with a 100 ms tick rate
             timer = new DispatcherTimer {
@@ -188,8 +179,14 @@ namespace FlightMonitor {
         /// <returns><c>true</c> if the variable was resolved successfully; <c>false</c> otherwise.</returns>
         public bool AddVariable(string name) {
             if (SimVariables.byName.ContainsKey(name)) {
-                Variables.Add(SimVariables.byName[name]);
-                LogMessage(SimConnectMessage.MessageStatus.Information, $"Started monitoring variable {name}.");
+                ISimVariable addedVariable = SimVariables.byName[name];
+                if (connection != null) {
+                    addedVariable.Register(connection);
+                }
+                lock (globalLock) {
+                    Variables.Add(addedVariable);
+                    LogMessage(SimConnectMessage.MessageStatus.Information, $"Started monitoring variable {name}.");
+                }
                 return true;
             } else {
                 LogMessage(SimConnectMessage.MessageStatus.Warning, $"Cannot monitor nonexistent variable {name}.");
