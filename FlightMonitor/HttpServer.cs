@@ -1,5 +1,8 @@
-﻿using System.Collections.ObjectModel;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
@@ -122,14 +125,35 @@ namespace FlightMonitor {
         }
 
         /// <summary>
+        /// Timer event to broadcast the variables currently being monitored to all WebSocket sessions.
+        /// </summary>
+        private void BroadcastSimulatorState(object sender, EventArgs e) {
+            // Generate a minimal JSON representation of the variables
+            string state = JsonConvert.SerializeObject(new {
+                type = "STATE_SNAPSHOT",
+                state = simClient.Variables
+                                 .Select(variable => new {
+                                     id = (int)variable.Id,
+                                     value = variable.Value
+                                 }).ToDictionary(item => item.id, item => item.value)
+            });
+
+            // Send the state packet to all active sessions
+            foreach (WebSocketSession session in WebSocketSessions) {
+                session.SendMessage(state);
+            }
+        }
+
+        /// <summary>
         /// Start the HTTP server and run in a separate thread until the <c>Stop</c> method is called.
         /// </summary>
         public void Start() {
             listener.Start();
-
             // Start a new thread to handle requests
             cancelSource = new CancellationTokenSource();
             _ = Task.Run(() => HandleConnections(cancelSource.Token).ConfigureAwait(false), cancelSource.Token);
+            // Register the broadcast task with the simulator client
+            simClient.AddDataResponse(new EventHandler(BroadcastSimulatorState));
         }
 
         /// <summary>

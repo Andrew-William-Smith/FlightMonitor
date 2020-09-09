@@ -8,26 +8,36 @@ export interface ISimVariable {
     name: string;
     /** The physical unit in which the variable is measured, or its type. */
     unit: string;
+    /** The value of this variable. */
+    value: any;
 }
 
 export interface IApplicationStore {
     /** The current simulation state as reported by the server. */
-    simState: Object;
-    /** The variables being monitored, as declared by the server. */
-    simVariables: { [id: number]: ISimVariable; };
+    simState: { [id: number]: ISimVariable; };
     /** The WebSocket used for server communication. */
     socket: WebSocket;
 }
 
 export default class ApplicationStore implements IApplicationStore {
-    @observable public simState: Object;
-    @observable public simVariables: { [id: number]: ISimVariable; };
+    /** The variables that will be monitored by default at startup. */
+    private static readonly DEFAULT_VARIABLES: string[] = [
+        'ATC AIRLINE',
+        'ATC FLIGHT NUMBER',
+        'ATC HEAVY',
+        'ATC ID',
+        'ATC MODEL',
+        'ATC TYPE',
+        'GENERAL ENG THROTTLE LEVER POSITION:1',
+        'INDICATED ALTITUDE'
+    ];
+
+    @observable public simState: { [id: number]: ISimVariable; };
     public socket: WebSocket;
 
     public constructor() {
         // Initialise the WebSocket
         this.simState = {};
-        this.simVariables = {};
         this.socket = new WebSocket(`ws://${window.location.host}/`);
         this.socket.onopen = this.handleSocketOpen;
         this.socket.onmessage = this.handleSocketMessage;
@@ -51,21 +61,26 @@ export default class ApplicationStore implements IApplicationStore {
     @action.bound
     private handleSocketOpen(): void {
         console.log('WebSocket connection established!');
-        this.addVariable('GENERAL ENG THROTTLE LEVER POSITION:1');
-        this.addVariable('INDICATED ALTITUDE');
+        ApplicationStore.DEFAULT_VARIABLES.forEach(v => this.addVariable(v));
     }
 
     /** Handler for messages received via WebSocket. */
     @action.bound
     private handleSocketMessage(evt: MessageEvent): void {
         let message = JSON.parse(evt.data);
-        console.log(`Received WebSocket message of type ${message['type']}`);
 
-        switch (message['type']) {
+        switch (message.type) {
             case 'DECLARE_VARIABLE':
                 // Add the declared variable to the variables list
                 let { id, name, unit } = message;
-                this.simVariables[id] = { id, name, unit };
+                this.simState[id] = { id, name, unit, value: 0 };
+                break;
+            case 'STATE_SNAPSHOT':
+                // Merge the new values into the current simulator state
+                let { state } = message;
+                Object.keys(state).forEach(id => {
+                    this.simState[+id].value = state[id];
+                });
                 break;
         }
     }

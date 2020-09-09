@@ -46,14 +46,21 @@ namespace FlightMonitor {
         }
 
         /// <summary>
+        /// Send the specified string message via this WebSocket.
+        /// </summary>
+        /// <param name="message">The message to send as a string: must be valid JSON.</param>
+        public void SendMessage(string message) {
+            byte[] rawJson = Encoding.UTF8.GetBytes(message);
+            _ = socket.SendAsync(new ArraySegment<byte>(rawJson, 0, rawJson.Length), WebSocketMessageType.Text, true,
+                cancelToken);
+        }
+
+        /// <summary>
         /// Send the specified message via this WebSocket.
         /// </summary>
         /// <param name="message">The message to send as an object of an anonymous type.</param>
         public void SendMessage(object message) {
-            string json = JsonConvert.SerializeObject(message);
-            byte[] rawJson = Encoding.UTF8.GetBytes(json);
-            _ = socket.SendAsync(new ArraySegment<byte>(rawJson, 0, rawJson.Length), WebSocketMessageType.Text, true,
-                cancelToken);
+            SendMessage(JsonConvert.SerializeObject(message));
         }
 
         /// <summary>

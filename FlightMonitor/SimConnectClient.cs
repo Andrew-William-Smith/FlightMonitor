@@ -25,6 +25,9 @@ namespace FlightMonitor {
         /// <summary>The duration in seconds for which text messages should be shown in the simulator.</summary>
         private const float TEXT_DURATION = 3.0f;
 
+        /// <summary>The frequency (in milliseconds) at which the timer will tick.</summary>
+        public const int TIMER_TICK_RATE = 100;
+
         /// <summary>The window handle on whose event loop SimConnect is running.</summary>
         public IntPtr WindowHandle { get; set; } = IntPtr.Zero;
 
@@ -41,7 +44,7 @@ namespace FlightMonitor {
         public bool Connected => connection != null;
 
         /// <summary>Timer used to limit the rate of SimConnect reads.</summary>
-        private readonly DispatcherTimer timer;
+        private DispatcherTimer timer;
 
         /// <summary>The global lock used to synchronise access between this client and the main thread.</summary>
         private readonly object globalLock;
@@ -54,12 +57,6 @@ namespace FlightMonitor {
             this.globalLock = globalLock;
             BindingOperations.EnableCollectionSynchronization(Messages, globalLock);
             BindingOperations.EnableCollectionSynchronization(Variables, globalLock);
-
-            // Initialise the timer with a 100 ms tick rate
-            timer = new DispatcherTimer {
-                Interval = new TimeSpan(0, 0, 0, 0, 100)
-            };
-            timer.Tick += new EventHandler(TimerTick);
         }
 
         private void TimerTick(object sender, EventArgs e) {
@@ -67,6 +64,15 @@ namespace FlightMonitor {
             foreach (ISimVariable v in Variables) {
                 connection?.RequestDataOnSimObjectType(v.Id, v.Id, 0, SIMCONNECT_SIMOBJECT_TYPE.USER);
             }
+        }
+
+        /// <summary>
+        /// Register the specified event handler to run whenever new simulator data becomes available for processing.
+        /// Note that handlers are cleared when the client is connected, so this method should only be called on 
+        /// </summary>
+        /// <param name="handler">The event handler to run once data is available.</param>
+        public void AddDataResponse(EventHandler handler) {
+            timer.Tick += handler;
         }
 
         /// <summary>
@@ -130,6 +136,12 @@ namespace FlightMonitor {
             // If we are establishing a new connection, clear state from the previous one
             Messages.Clear();
             Variables.Clear();
+
+            // Initialise a new timer with the correct tick rate
+            timer = new DispatcherTimer {
+                Interval = new TimeSpan(0, 0, 0, 0, TIMER_TICK_RATE)
+            };
+            timer.Tick += new EventHandler(TimerTick);
 
             try {
                 // Establish a connection to the simulator on the current window's event loop
