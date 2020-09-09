@@ -14,7 +14,7 @@ namespace FlightMonitor {
     /// </summary>
     public class HttpServer {
         /// <summary>The URI prefix monitored by the server's listener.</summary>
-        private const string LISTENER_URI_PREFIX = "http://localhost:8000/";
+        private const string LISTENER_URI_PREFIX = "http://+:8000/";
 
         /// <summary>The currently-active WebSocket sessions being handled by this server.</summary>
         public ObservableCollection<WebSocketSession> WebSocketSessions { get; }

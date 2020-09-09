@@ -28,7 +28,7 @@ export default class ApplicationStore implements IApplicationStore {
         // Initialise the WebSocket
         this.simState = {};
         this.simVariables = {};
-        this.socket = new WebSocket('ws://localhost:8000/');
+        this.socket = new WebSocket(`ws://${window.location.host}/`);
         this.socket.onopen = this.handleSocketOpen;
         this.socket.onmessage = this.handleSocketMessage;
     }

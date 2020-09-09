@@ -1,7 +1,8 @@
 import React from 'react';
-import { observer, inject } from 'mobx-react';
+import { inject, observer } from 'mobx-react';
 
 import ApplicationStore from '../stores/ApplicationStore';
+import VariableList from './VariableList/VariableList';
 
 interface IAppProps {
   globalStore?: ApplicationStore;
@@ -12,7 +13,7 @@ interface IAppProps {
 export default class App extends React.Component<IAppProps, {}> {
   public render(): React.ReactNode {
     return (
-      <div>Hello!</div>
+      <VariableList />
     );
   }
 }
