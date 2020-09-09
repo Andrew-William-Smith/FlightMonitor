@@ -7,7 +7,7 @@ namespace FlightMonitor {
     /// <summary>
     /// Wrapper class for the base variable objects for all SimConnect variables supported by Flight Monitor.
     /// </summary>
-    static class SimVariables {
+    public static class SimVariables {
         /// <summary>Name of the file containing the list of SimConnect variables.</summary>
         private const string VARIABLES_FILE_NAME = "FlightMonitor.SimVariables.txt";
 

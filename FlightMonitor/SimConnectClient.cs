@@ -11,7 +11,7 @@ namespace FlightMonitor {
     /// A client for the Flight Simulator SimConnect API, provided by default with the Flight Simulator 2020 SDK.
     /// Handles all communication with a running instance of the game, providing data to the server and application.
     /// </summary>
-    class SimConnectClient {
+    public class SimConnectClient {
         /// <summary>
         /// A placeholder for SimConnect enum types that don't accept integers.
         /// </summary>

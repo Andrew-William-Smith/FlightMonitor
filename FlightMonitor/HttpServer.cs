@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Net;
 using System.Net.WebSockets;
@@ -8,17 +6,18 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using System.Windows.Data;
 
 namespace FlightMonitor {
     /// <summary>
     /// A simple HTTP server running on port 80 of the local machine, used to serve static content to the web client.
     /// </summary>
-    class HttpServer {
+    public class HttpServer {
         /// <summary>The URI prefix monitored by the server's listener.</summary>
         private const string LISTENER_URI_PREFIX = "http://localhost:8000/";
 
-        /// <summary>Size of the WebSocket buffers used to store and construct messages.</summary>
-        private const int WEBSOCKET_BUFFER_SIZE = 8192;
+        /// <summary>The currently-active WebSocket sessions being handled by this server.</summary>
+        public ObservableCollection<WebSocketSession> WebSocketSessions { get; }
 
         /// <summary>The SimConnect client through which to marshal simulator data.</summary>
         private readonly SimConnectClient simClient;
@@ -29,17 +28,23 @@ namespace FlightMonitor {
         /// <summary>Cancellation token generator used to stop the listener thread.</summary>
         private CancellationTokenSource cancelSource;
 
-        /// <summary>The number of currently active WebSocket connections.</summary>
-        private int webSocketCount;
+        /// <summary>The global lock used to synchronise access between this client and the main thread.</summary>
+        private readonly object globalLock;
 
         /// <summary>
         /// Construct a new HTTP server that marshals data through the specified SimConnect client.
         /// </summary>
         /// <param name="client">The SimConnect client through which to marshal simulator data.</param>
-        public HttpServer(SimConnectClient client) {
+        /// <param name="globalLock">The lock used to synchronise observable operations performed by the server.</param>
+        public HttpServer(SimConnectClient client, object globalLock) {
             simClient = client;
             listener = new HttpListener();
             listener.Prefixes.Add(LISTENER_URI_PREFIX);
+
+            // Initialise WebSocket session store
+            this.globalLock = globalLock;
+            WebSocketSessions = new ObservableCollection<WebSocketSession>();
+            BindingOperations.EnableCollectionSynchronization(WebSocketSessions, globalLock);
         }
 
         ~HttpServer() {
@@ -82,124 +87,6 @@ namespace FlightMonitor {
         }
 
         /// <summary>
-        /// Send the specified message via the specified WebSocket.
-        /// </summary>
-        /// <param name="socket">The socket via which to send the message.</param>
-        /// <param name="message">The message to send as an object of an anonymous type.</param>
-        /// <param name="cancelToken">The cancellation token used to abort the sending of the message.</param>
-        private void SendWebSocketMessage(WebSocket socket, object message, CancellationToken cancelToken) {
-            string json = JsonConvert.SerializeObject(message);
-            byte[] rawMessage = Encoding.UTF8.GetBytes(json);
-            _ = socket.SendAsync(new ArraySegment<byte>(rawMessage, 0, rawMessage.Length), WebSocketMessageType.Text,
-                true, cancelToken);
-        }
-
-        private void ExecuteAddVariable(WebSocket socket,
-                                        Dictionary<string, object> request,
-                                        CancellationToken cancelToken) {
-            string name = (string)request["variable"];
-            ISimVariable variable = simClient.AddVariable(name);
-            if (variable != null) {
-                // Variable was added successfully, send the client its information
-                SendWebSocketMessage(socket, new {
-                    type = "DECLARE_VARIABLE",
-                    name = variable.Name,
-                    id = variable.Id,
-                    unit = variable.Unit
-                }, cancelToken);
-            } else {
-                // If this did not succeed, then the user requested a nonexistent variable
-                SendWebSocketMessage(socket, new {
-                    type = "ERROR",
-                    message = $"Cannot monitor unknown variable {variable}."
-                }, cancelToken);
-            }
-        }
-
-        /// <summary>
-        /// Process the specified message received from a WebSocket.
-        /// </summary>
-        /// <param name="socket">The WebSocket from which the message was received.</param>
-        /// <param name="message">The message to process.</param>
-        /// <param name="cancelToken">The cancellation token used to abort the sending of message responses.</param>
-        private void ProcessWebSocketMessage(WebSocket socket, string message, CancellationToken cancelToken) {
-            // Deserialise JSON and determine which action to execute
-            Dictionary<string, object> content;
-            try {
-                content = JsonConvert.DeserializeObject<Dictionary<string, object>>(message);
-            } catch (JsonReaderException ex) {
-                SendWebSocketMessage(socket, new {
-                    type = "ERROR",
-                    message = $"Malformed JSON message: {ex.Message}"
-                }, cancelToken);
-                return;
-            }
-
-            // Every message must have a type declared
-            if (!content.ContainsKey("type")) {
-                SendWebSocketMessage(socket, new {
-                    type = "ERROR",
-                    message = "Malformed message: must contain a key \"type\"."
-                }, cancelToken);
-                return;
-            }
-
-            string type = (string)content["type"];
-            switch (type) {
-                case "ADD_VARIABLE":
-                    // Start monitoring a variable
-                    ExecuteAddVariable(socket, content, cancelToken);
-                    break;
-                default:
-                    // Unknown message type, send an error
-                    SendWebSocketMessage(socket, new {
-                        type = "ERROR",
-                        message = $"Cannot execute message of unknown type {type}."
-                    }, cancelToken);
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Handle an incoming WebSocket connection with the specified context.  Intended to be run in a separate thread
-        /// off of the main server thread, with one thread per client.
-        /// </summary>
-        /// <param name="context">The WebSocket context of this connection.</param>
-        /// <param name="socketId">A unique identifier for this connection's socket.</param>
-        /// <param name="cancelToken">The cancellation token used to abort the sending of message responses.</param>
-        private async Task HandleWebSocketConnection(HttpListenerWebSocketContext context,
-                                                     int socketId,
-                                                     CancellationToken cancelToken) {
-            WebSocket socket = context.WebSocket;
-            ArraySegment<byte> buffer = WebSocket.CreateServerBuffer(WEBSOCKET_BUFFER_SIZE);
-
-            while (socket.State != WebSocketState.Closed && socket.State != WebSocketState.Aborted
-                    && !cancelToken.IsCancellationRequested) {
-                WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, cancelToken);
-
-                // If the token is cancelled during result fetch, then the socket will be aborted
-                if (!cancelToken.IsCancellationRequested) {
-                    if (socket.State == WebSocketState.CloseReceived
-                            && result.MessageType == WebSocketMessageType.Close) {
-                        // If the client is closing the token, acknowledge
-                        await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge closure",
-                            CancellationToken.None);
-                    } else if (socket.State == WebSocketState.Open) {
-                        // Handle client message
-                        ProcessWebSocketMessage(socket, Encoding.UTF8.GetString(buffer.Array, 0, result.Count),
-                            cancelToken);
-                    }
-                }
-            }
-
-            // Ensure that the socket is not still connected
-            if (socket.State != WebSocketState.Closed) {
-                socket.Abort();
-            }
-            socket.Dispose();
-        }
-
-        /// <summary>
         /// Handle incoming HTTP and WebSocket connections.  Intended to be run in a separate thread cancellable with
         /// the specified token.
         /// </summary>
@@ -212,9 +99,18 @@ namespace FlightMonitor {
                     HttpListenerContext context = await listener.GetContextAsync();
                     if (context.Request.IsWebSocketRequest) {
                         HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(null);
-                        int wsId = Interlocked.Increment(ref webSocketCount);
                         _ = Task.Run(() => {
-                            return HandleWebSocketConnection(wsContext, wsId, cancelToken).ConfigureAwait(false);
+                            WebSocketSession session = new WebSocketSession(wsContext, simClient, cancelToken);
+                            lock (globalLock) {
+                                WebSocketSessions.Add(session);
+                            }
+                            // Once the socket has closed, we should remove the session from the list
+                            session.SocketClosed += (sender, evt) => {
+                                lock (globalLock) {
+                                    _ = WebSocketSessions.Remove(session);
+                                }
+                            };
+                            return session.Run().ConfigureAwait(false);
                         }, cancelToken);
                     } else {
                         _ = Task.Run(() => HandleHttpConnection(context).ConfigureAwait(false), cancelToken);
@@ -242,6 +138,7 @@ namespace FlightMonitor {
         public void Stop() {
             cancelSource?.Cancel();
             listener.Stop();
+            WebSocketSessions.Clear();
         }
     }
 }

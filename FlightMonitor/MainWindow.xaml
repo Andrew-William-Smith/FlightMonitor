@@ -65,10 +65,19 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <CheckBox Grid.Column="0" Content="Keep on top" IsChecked="{Binding Topmost}" />
                 <TextBlock Grid.Column="2">
+                    <Run Text="Sessions:" />
+                    <Run Text="{Binding HttpServer.WebSocketSessions.Count, Mode=OneWay}" />
+                </TextBlock>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="5,0,5,0">
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+                </StackPanel>
+                <TextBlock Grid.Column="4">
                     <Run Text="IP Address:" />
                     <Run Text="{Binding CurrentIpAddress}" />
                 </TextBlock>

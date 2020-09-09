@@ -8,14 +8,14 @@ namespace FlightMonitor {
     /// Placeholder enum for variable request IDs.  Used only so that we have something to which to cast the
     /// integers by which variables are actually identified.
     /// </summary>
-    enum VariableId {
+    public enum VariableId {
         Dummy
     }
 
     /// <summary>
     /// An untyped simulator variable, used to allow variables to be stored in a collection.
     /// </summary>
-    interface ISimVariable {
+    public interface ISimVariable {
         /// <summary>The numeric identifier of this variable as reported by SimConnect.</summary>
         VariableId Id { get; }
 
