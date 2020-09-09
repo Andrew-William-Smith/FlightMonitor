@@ -82,6 +82,41 @@ namespace FlightMonitor {
         }
 
         /// <summary>
+        /// Send the specified message via the specified WebSocket.
+        /// </summary>
+        /// <param name="socket">The socket via which to send the message.</param>
+        /// <param name="message">The message to send as an object of an anonymous type.</param>
+        /// <param name="cancelToken">The cancellation token used to abort the sending of the message.</param>
+        private void SendWebSocketMessage(WebSocket socket, object message, CancellationToken cancelToken) {
+            string json = JsonConvert.SerializeObject(message);
+            byte[] rawMessage = Encoding.UTF8.GetBytes(json);
+            _ = socket.SendAsync(new ArraySegment<byte>(rawMessage, 0, rawMessage.Length), WebSocketMessageType.Text,
+                true, cancelToken);
+        }
+
+        private void ExecuteAddVariable(WebSocket socket,
+                                        Dictionary<string, object> request,
+                                        CancellationToken cancelToken) {
+            string name = (string)request["variable"];
+            ISimVariable variable = simClient.AddVariable(name);
+            if (variable != null) {
+                // Variable was added successfully, send the client its information
+                SendWebSocketMessage(socket, new {
+                    type = "DECLARE_VARIABLE",
+                    name = variable.Name,
+                    id = variable.Id,
+                    unit = variable.Unit
+                }, cancelToken);
+            } else {
+                // If this did not succeed, then the user requested a nonexistent variable
+                SendWebSocketMessage(socket, new {
+                    type = "ERROR",
+                    message = $"Cannot monitor unknown variable {variable}."
+                }, cancelToken);
+            }
+        }
+
+        /// <summary>
         /// Process the specified message received from a WebSocket.
         /// </summary>
         /// <param name="socket">The WebSocket from which the message was received.</param>
@@ -89,29 +124,39 @@ namespace FlightMonitor {
         /// <param name="cancelToken">The cancellation token used to abort the sending of message responses.</param>
         private void ProcessWebSocketMessage(WebSocket socket, string message, CancellationToken cancelToken) {
             // Deserialise JSON and determine which action to execute
-            var content = JsonConvert.DeserializeObject<Dictionary<string, object>>(message);
-            string action = (string)content["action"];
-
-            bool requestSucceeded;
-            string failureMessage;
-            switch (action) {
-                case "ADD_VARIABLE":
-                    string variable = (string)content["variable"];
-                    failureMessage = $"Invalid variable {variable}";
-                    requestSucceeded = simClient.AddVariable(variable);
-                    break;
-                default:
-                    requestSucceeded = false;
-                    failureMessage = $"Unrecognised action \"{action}\"";
-                    break;
+            Dictionary<string, object> content;
+            try {
+                content = JsonConvert.DeserializeObject<Dictionary<string, object>>(message);
+            } catch (JsonReaderException ex) {
+                SendWebSocketMessage(socket, new {
+                    type = "ERROR",
+                    message = $"Malformed JSON message: {ex.Message}"
+                }, cancelToken);
+                return;
             }
 
-            if (!requestSucceeded) {
-                // Request processing failed, so respond with a failure message
-                string failureJson = JsonConvert.SerializeObject(new { failure = failureMessage });
-                byte[] failureBytes = Encoding.UTF8.GetBytes(failureJson);
-                _ = socket.SendAsync(new ArraySegment<byte>(failureBytes, 0, failureBytes.Length),
-                    WebSocketMessageType.Text, true, cancelToken);
+            // Every message must have a type declared
+            if (!content.ContainsKey("type")) {
+                SendWebSocketMessage(socket, new {
+                    type = "ERROR",
+                    message = "Malformed message: must contain a key \"type\"."
+                }, cancelToken);
+                return;
+            }
+
+            string type = (string)content["type"];
+            switch (type) {
+                case "ADD_VARIABLE":
+                    // Start monitoring a variable
+                    ExecuteAddVariable(socket, content, cancelToken);
+                    break;
+                default:
+                    // Unknown message type, send an error
+                    SendWebSocketMessage(socket, new {
+                        type = "ERROR",
+                        message = $"Cannot execute message of unknown type {type}."
+                    }, cancelToken);
+                    break;
             }
         }
 
@@ -141,7 +186,7 @@ namespace FlightMonitor {
                             CancellationToken.None);
                     } else if (socket.State == WebSocketState.Open) {
                         // Handle client message
-                        ProcessWebSocketMessage(socket, Encoding.UTF8.GetString(buffer.Array, 0, buffer.Count),
+                        ProcessWebSocketMessage(socket, Encoding.UTF8.GetString(buffer.Array, 0, result.Count),
                             cancelToken);
                     }
                 }

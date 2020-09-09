@@ -127,8 +127,9 @@ namespace FlightMonitor {
                 return true;
             }
 
-            // If we are establishing a new connection, clear messages from the previous one
+            // If we are establishing a new connection, clear state from the previous one
             Messages.Clear();
+            Variables.Clear();
 
             try {
                 // Establish a connection to the simulator on the current window's event loop
@@ -176,21 +177,24 @@ namespace FlightMonitor {
         /// Begin monitoring the variable with the specified name using this client.
         /// </summary>
         /// <param name="name">The name of the variable to monitor.</param>
-        /// <returns><c>true</c> if the variable was resolved successfully; <c>false</c> otherwise.</returns>
-        public bool AddVariable(string name) {
+        /// <returns>The variable being monitored if it was added successfully, or <c>null</c> otherwise.</returns>
+        public ISimVariable AddVariable(string name) {
             if (SimVariables.byName.ContainsKey(name)) {
+                // Do not re-add the variable if it was already added by another client
                 ISimVariable addedVariable = SimVariables.byName[name];
-                if (connection != null) {
-                    addedVariable.Register(connection);
+                if (!Variables.Contains(addedVariable)) {
+                    if (connection != null) {
+                        addedVariable.Register(connection);
+                    }
+                    lock (globalLock) {
+                        Variables.Add(addedVariable);
+                        LogMessage(SimConnectMessage.MessageStatus.Information, $"Started monitoring variable {name}.");
+                    }
                 }
-                lock (globalLock) {
-                    Variables.Add(addedVariable);
-                    LogMessage(SimConnectMessage.MessageStatus.Information, $"Started monitoring variable {name}.");
-                }
-                return true;
+                return addedVariable;
             } else {
                 LogMessage(SimConnectMessage.MessageStatus.Warning, $"Cannot monitor nonexistent variable {name}.");
-                return false;
+                return null;
             }
         }
 

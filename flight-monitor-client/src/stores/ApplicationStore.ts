@@ -1,21 +1,36 @@
 import { action, observable } from 'mobx';
 
+/** A variable declaration received from the server. */
+export interface ISimVariable {
+    /** The ID by which the variable is identified in transmissions. */
+    id: number;
+    /** The human-readable(-ish) name of the variable. */
+    name: string;
+    /** The physical unit in which the variable is measured, or its type. */
+    unit: string;
+}
+
 export interface IApplicationStore {
     /** The current simulation state as reported by the server. */
     simState: Object;
+    /** The variables being monitored, as declared by the server. */
+    simVariables: { [id: number]: ISimVariable; };
     /** The WebSocket used for server communication. */
     socket: WebSocket;
 }
 
 export default class ApplicationStore implements IApplicationStore {
     @observable public simState: Object;
+    @observable public simVariables: { [id: number]: ISimVariable; };
     public socket: WebSocket;
 
     public constructor() {
         // Initialise the WebSocket
         this.simState = {};
+        this.simVariables = {};
         this.socket = new WebSocket('ws://localhost:8000/');
         this.socket.onopen = this.handleSocketOpen;
+        this.socket.onmessage = this.handleSocketMessage;
     }
 
     /**
@@ -27,7 +42,7 @@ export default class ApplicationStore implements IApplicationStore {
     @action.bound
     public addVariable(variable: string): void {
         this.sendSocketMessage({
-            action: 'ADD_VARIABLE',
+            type: 'ADD_VARIABLE',
             variable
         });
     }
@@ -36,8 +51,23 @@ export default class ApplicationStore implements IApplicationStore {
     @action.bound
     private handleSocketOpen(): void {
         console.log('WebSocket connection established!');
-        this.addVariable('INDICATED ALTITUDE');
         this.addVariable('GENERAL ENG THROTTLE LEVER POSITION:1');
+        this.addVariable('INDICATED ALTITUDE');
+    }
+
+    /** Handler for messages received via WebSocket. */
+    @action.bound
+    private handleSocketMessage(evt: MessageEvent): void {
+        let message = JSON.parse(evt.data);
+        console.log(`Received WebSocket message of type ${message['type']}`);
+
+        switch (message['type']) {
+            case 'DECLARE_VARIABLE':
+                // Add the declared variable to the variables list
+                let { id, name, unit } = message;
+                this.simVariables[id] = { id, name, unit };
+                break;
+        }
     }
 
     /**
