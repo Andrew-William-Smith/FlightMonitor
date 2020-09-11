@@ -21,7 +21,7 @@ export default class Header extends React.Component<IGlobalStore, {}> {
                                       transform={t => Magic.ATC_TYPE[t]} />;
         let flightName;
 
-        if (flightNum === undefined || flightNum.value.length === 0) {
+        if (!(flightNum?.value?.length > 0)) {
             // Display as a GA flight without registration
             flightName = (
                 <div id='flight-name'>

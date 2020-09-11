@@ -5,6 +5,7 @@ import { Provider } from 'mobx-react';
 import './styles/index.scss';
 import App from './components/App';
 import ApplicationStore from './stores/ApplicationStore';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 
 // Create a global instance of the application store
 const GLOBAL_STORE = new ApplicationStore();
@@ -12,7 +13,9 @@ const GLOBAL_STORE = new ApplicationStore();
 ReactDOM.render(
   <React.StrictMode>
     <Provider globalStore={GLOBAL_STORE}>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </Provider>
   </React.StrictMode>,
   document.getElementById('root')
