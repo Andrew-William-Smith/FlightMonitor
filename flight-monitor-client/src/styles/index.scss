@@ -1,0 +1,11 @@
+@import "./_colours.scss";
+@import "./fonts.scss";
+
+html, body {
+  @extend %font-normal;
+
+  margin: 0;
+  padding: 0;
+  background-color: $colour-bg;
+  color: $colour-fg;
+}

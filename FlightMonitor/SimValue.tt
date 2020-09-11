@@ -30,6 +30,7 @@ namespace FlightMonitor {
     <#= GenerateType("SimBool", "int", "false", "INT32", "_value != 0") #>
     <#= GenerateType("SimString8", "string", "true", "STRING8", annotation: "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]") #>
     <#= GenerateType("SimString64", "string", "true", "STRING64", annotation: "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]") #>
+    <#= GenerateType("SimStringV", "string", "true", "STRINGV", annotation: "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]") #>
 }
 
 <#+

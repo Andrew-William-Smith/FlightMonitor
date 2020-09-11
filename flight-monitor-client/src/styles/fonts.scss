@@ -1,0 +1,25 @@
+// Font family: B612 (Mono)
+@import url('https://fonts.googleapis.com/css2?family=B612+Mono&family=B612:ital,wght@0,400;0,700;1,400&display=swap');
+
+$font-family-variable: 'B612', sans-serif;
+$font-family-fixed: 'B612 Mono', monospace;
+
+%font-normal {
+    font-family: $font-family-variable;
+    font-weight: 400;
+}
+
+%font-bold {
+    font-family: $font-family-variable;
+    font-weight: 400;
+}
+
+%font-italic {
+    font-family: $font-family-variable;
+    font-weight: 400;
+}
+
+%font-mono {
+    font-family: $font-family-fixed;
+    font-weight: 400;
+}

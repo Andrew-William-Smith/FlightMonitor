@@ -36,6 +36,7 @@ namespace FlightMonitor {
                         switch (varUnit) {
                             case "String8":
                             case "String64":
+                            case "StringV":
                             case "Bool":
                                 // Special types require generics generated from their units
                                 Type genericType = Type.GetType("FlightMonitor.Sim" + varUnit);
