@@ -1,0 +1,18 @@
+@import '../../styles/fonts.scss';
+
+#flight-id {
+    text-transform: uppercase;
+}
+
+#flight-name {
+    @extend %font-bold;
+    font-size: 20pt;
+}
+
+#flight-aircraft {
+    font-size: 14pt;
+}
+
+#tail-number {
+    @extend %font-mono;
+}

@@ -11,12 +11,12 @@ $font-family-fixed: 'B612 Mono', monospace;
 
 %font-bold {
     font-family: $font-family-variable;
-    font-weight: 400;
+    font-weight: 700;
 }
 
 %font-italic {
     font-family: $font-family-variable;
-    font-weight: 400;
+    font-style: italic;
 }
 
 %font-mono {

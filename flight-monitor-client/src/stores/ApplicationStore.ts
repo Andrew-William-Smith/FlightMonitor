@@ -46,10 +46,13 @@ export default class ApplicationStore implements IApplicationStore {
      */
     @action.bound
     public addVariable(variable: string): void {
-        this.sendSocketMessage({
-            type: 'ADD_VARIABLE',
-            variable
-        });
+        // Don't attempt to re-add a variable that we know is available locally
+        if (!(variable in this.simState)) {
+            this.sendSocketMessage({
+                type: 'ADD_VARIABLE',
+                variable
+            });
+        }
     }
 
     /** Handler for the WebSocket "onopen" signal. */
