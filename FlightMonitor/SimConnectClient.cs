@@ -61,8 +61,10 @@ namespace FlightMonitor {
 
         private void TimerTick(object sender, EventArgs e) {
             // Fetch data for all variables
-            foreach (ISimVariable v in Variables) {
-                connection?.RequestDataOnSimObjectType(v.Id, v.Id, 0, SIMCONNECT_SIMOBJECT_TYPE.USER);
+            lock (globalLock) {
+                foreach (ISimVariable v in Variables) {
+                    connection?.RequestDataOnSimObjectType(v.Id, v.Id, 0, SIMCONNECT_SIMOBJECT_TYPE.USER);
+                }
             }
         }
 

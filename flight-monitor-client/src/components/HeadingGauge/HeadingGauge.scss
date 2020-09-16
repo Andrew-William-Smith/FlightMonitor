@@ -1,0 +1,25 @@
+.heading-gauge {
+    position: relative;
+    display: grid;
+}
+
+.heading-gauge img {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.heading-beacon1 {
+    z-index: 103;
+}
+
+.heading-beacon2 {
+    z-index: 102;
+}
+
+.heading-plane {
+    z-index: 101;
+}
+
+.heading-dial {
+    z-index: 100;
+}

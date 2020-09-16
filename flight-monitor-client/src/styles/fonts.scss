@@ -1,8 +1,8 @@
-// Font family: B612 (Mono)
-@import url('https://fonts.googleapis.com/css2?family=B612+Mono&family=B612:ital,wght@0,400;0,700;1,400&display=swap');
+// Font family: Overpass (Mono)
+@import url('https://fonts.googleapis.com/css2?family=Overpass+Mono&family=Overpass:ital,wght@0,400;0,700;1,400&display=swap');
 
-$font-family-variable: 'B612', sans-serif;
-$font-family-fixed: 'B612 Mono', monospace;
+$font-family-variable: 'Overpass', sans-serif;
+$font-family-fixed: 'Overpass Mono', monospace;
 
 %font-normal {
     font-family: $font-family-variable;

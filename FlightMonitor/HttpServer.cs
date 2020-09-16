@@ -69,7 +69,12 @@ namespace FlightMonitor {
             byte[] fileContents;
             try {
                 fileContents = File.ReadAllBytes($"./Client{requestedFile}");
-                response.ContentType = MimeMapping.GetMimeMapping(requestedFile);
+                if (requestedFile.EndsWith(".svg")) {
+                    // SVG is not in the default MIME registry and must be handled separately
+                    response.ContentType = "image/svg+xml";
+                } else {
+                    response.ContentType = MimeMapping.GetMimeMapping(requestedFile);
+                }
             } catch {
                 fileContents = Encoding.UTF8.GetBytes($"Error 404: File {requestedFile} could not be found.");
                 response.ContentType = "text/plain";
