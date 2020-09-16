@@ -4,6 +4,7 @@ import { inject, observer } from 'mobx-react';
 import SimString from '../SimTypes/SimString';
 import AltimeterGauge from '../AltimeterGauge/AltimeterGauge';
 import HeadingGauge from '../HeadingGauge/HeadingGauge';
+import VariometerGauge from '../VariometerGauge/VariometerGauge';
 
 import Magic from '../../MagicValues';
 import { IGlobalStore } from '../../stores/ApplicationStore';
@@ -63,6 +64,7 @@ export default class Header extends React.Component<IGlobalStore, {}> {
                 <div id='header-gauges'>
                     <AltimeterGauge size={140} />
                     <HeadingGauge size={140} />
+                    <VariometerGauge size={140} />
                 </div>
             </div>
         );

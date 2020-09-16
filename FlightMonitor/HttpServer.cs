@@ -134,14 +134,17 @@ namespace FlightMonitor {
         /// </summary>
         private void BroadcastSimulatorState(object sender, EventArgs e) {
             // Generate a minimal JSON representation of the variables
-            string state = JsonConvert.SerializeObject(new {
-                type = "STATE_SNAPSHOT",
-                state = simClient.Variables
-                                 .Select(variable => new {
-                                     id = (int)variable.Id,
-                                     value = variable.Value
-                                 }).ToDictionary(item => item.id, item => item.value)
-            });
+            string state = "";
+            lock (globalLock) {
+                state = JsonConvert.SerializeObject(new {
+                    type = "STATE_SNAPSHOT",
+                    state = simClient.Variables
+                                     .Select(variable => new {
+                                         id = (int)variable.Id,
+                                         value = variable.Value
+                                     }).ToDictionary(item => item.id, item => item.value)
+                });
+            }
 
             // Send the state packet to all active sessions
             foreach (WebSocketSession session in WebSocketSessions) {

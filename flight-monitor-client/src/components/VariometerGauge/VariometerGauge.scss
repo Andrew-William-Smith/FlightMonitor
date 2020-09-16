@@ -1,0 +1,17 @@
+.variometer-gauge {
+    position: relative;
+    display: grid;
+}
+
+.variometer-gauge img {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.variometer-hand {
+    z-index: 101;
+}
+
+.variometer-dial {
+    z-index: 100;
+}
