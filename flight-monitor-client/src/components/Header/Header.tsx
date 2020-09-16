@@ -1,12 +1,13 @@
 import React from 'react';
 import { inject, observer } from 'mobx-react';
 
-import SimFloat from '../SimTypes/SimFloat';
 import SimString from '../SimTypes/SimString';
+import AltimeterGauge from '../AltimeterGauge/AltimeterGauge';
+import HeadingGauge from '../HeadingGauge/HeadingGauge';
+
 import Magic from '../../MagicValues';
 import { IGlobalStore } from '../../stores/ApplicationStore';
 import './Header.scss';
-import HeadingGauge from '../HeadingGauge/HeadingGauge';
 
 @inject('globalStore')
 @observer
@@ -16,8 +17,7 @@ export default class Header extends React.Component<IGlobalStore, {}> {
         // Need to add a few variables manually for custom displays
         ['ATC AIRLINE',
          'ATC FLIGHT NUMBER',
-         'ATC HEAVY',
-         'PLANE ALTITUDE'].forEach(v => {
+         'ATC HEAVY'].forEach(v => {
             this.props.globalStore!.addVariable(v);
         });
     }
@@ -47,10 +47,6 @@ export default class Header extends React.Component<IGlobalStore, {}> {
             );
         }
 
-        // Altitude requires custom display
-        let altitude = simState['PLANE ALTITUDE']?.value ?? 0;
-        let flightLevel = Math.floor(altitude / 100).toString().padStart(3, '0');
-
         return (
             <div id='header'>
                 <div id='flight-id'>
@@ -65,16 +61,8 @@ export default class Header extends React.Component<IGlobalStore, {}> {
                 </div>
 
                 <div id='header-gauges'>
+                    <AltimeterGauge size={140} />
                     <HeadingGauge size={140} />
-                </div>
-
-                <div id='header-avionics'>
-                    <div id='header-altitude'>
-                        {`${Math.floor(altitude)} ft • FL${flightLevel}`}
-                    </div>
-                    <div id='header-airspeed'>
-                        <SimFloat variable='AIRSPEED INDICATED' /> kts
-                    </div>
                 </div>
             </div>
         );

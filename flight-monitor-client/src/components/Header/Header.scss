@@ -33,6 +33,11 @@
         background-image: linear-gradient(0deg, $bright 16.67%, $dark 16.67%, $dark 50%, $bright 50%, $bright 66.67%, $dark 66.67%, $dark 100%);
         background-size: 6px 6px;
     }
+
+    .gauge-wrapper {
+        display: inline-block;
+        margin: 0 15px;
+    }
 }
 
 #flight-id {
@@ -54,14 +59,7 @@
 }
 
 #header-gauges {
-    flex-grow: 2;
-}
-
-#header-avionics {
-    font-size: 17pt;
     flex-grow: 1;
-
-    &>div {
-        text-align: right;
-    }
+    margin-bottom: -35px;
+    text-align: right;
 }

@@ -1,0 +1,37 @@
+.altimeter-gauge {
+    position: relative;
+    display: grid;
+}
+
+.altimeter-gauge img {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.altimeter-100 {
+    z-index: 104;
+}
+
+.altimeter-1000 {
+    z-index: 103;
+}
+
+.altimeter-10000 {
+    z-index: 102;
+}
+
+.altimeter-fg {
+    z-index: 101;
+}
+
+.altimeter-bg {
+    z-index: 100;
+}
+
+.altimeter-mb {
+    z-index: 99;
+}
+
+.altimeter-hg {
+    z-index: 98;
+}
